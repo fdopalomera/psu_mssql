@@ -43,7 +43,6 @@ class PrepPsu:
             # Imprimir columnas cambiadas
             print('{} to {}'.format(diff1, diff2))
 
-
     def replace_nan_values(self, nan_dict):
         
         nan_before = self.__base.isnull().sum()
@@ -53,7 +52,6 @@ class PrepPsu:
         nan_diff.name = 'added_nan_values'
         print(nan_diff)
 
-    
     def clean_columns_name(self, old_value, new_value):
         
         new_cols_name = [x.replace(old_value, new_value) for x in self.__base.columns]
@@ -67,7 +65,6 @@ class PrepPsu:
             # Imprimir columnas cambiadas
             print('{} to {}'.format(diff1, diff2))
             
-   
     def to_sql(self, table_name, engine, replace_if_exist=False):
         
         action = 'fail'
