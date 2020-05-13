@@ -125,10 +125,50 @@ class PrepPsuAccess:
 
         self.tables[table_name].rename(columns=columns_dict)
 
-    def to_sql(self, engine, dtype_dict, if_exists='fail'):
+    def table_to_sql(self, engine, tab_name, dtype_dict=None, if_exists='fail'):
 
-        for tab_name in self.tables_name:
-            if tab_name.__contains__('_e'):
-                self.tables[tab_name].to_sql(tab_name, engine, if_exists=if_exists, index=False, dtype=dtype_dict)
-            else:
-                self.tables[tab_name].to_sql(tab_name, engine, if_exists=if_exists, index=False)
+        if dtype_dict is None:
+            self.tables[tab_name].to_sql(tab_name, engine, if_exists=if_exists, index=False)
+        else:
+            self.tables[tab_name].to_sql(tab_name, engine, if_exists=if_exists, index=False, dtype=dtype_dict)
+
+    def to_sql(self, engine, dtypes_dict, auto_rw_dict='add', if_exists='replace'):
+
+        # TODO: dict(tab_name:'add', tab2, 'drop'))
+        exported_tables = []
+        for tab_type in dtypes_dict.keys():
+
+            for tab_name in [tab for tab in self.tables_name if '_{}'.format(tab_type) in tab]:
+                tmp_df = self.compare_columns_name(tab_name, list(dtypes_dict[tab_type].keys()))
+                # Dict temporal de dtypes
+                tmp_dict = dtypes_dict[tab_type]
+
+                if tmp_df is not None:
+                    # Remover campos esperados y no encontrados por el diccionario
+                    [tmp_dict.pop(key) for key in tmp_df['list_cols'].to_list()]
+
+                    if auto_rw_dict == 'drop':
+                        drop_cols = tmp_df['real_cols'].to_list()
+                        print('En {} columnas originales eliminadas: \n{}\n'.format(tab_name, drop_cols))
+
+                    elif auto_rw_dict == 'add':
+                        added_cols = tmp_df['real_cols'].to_list()
+                        [tmp_dict.update({key, 'VARCHAR (255)'}) for key in tmp_df['list_cols']]
+                        print('En {} columnas originales agregadas: \n{}\n'.format(tab_name, added_cols))
+                    else:
+                        raise ValueError('Invalid Value {} for \"auto_rw_dict\"'.format(auto_rw_dict))
+                # Carga de la tabla en la base de sql
+                self.tables[tab_name].to_sql(tab_name,
+                                             engine,
+                                             if_exists=if_exists,
+                                             index=False,
+                                             dtype=tmp_dict)
+                exported_tables.append(tab_name)
+        # Exportar con formato automático (VARCHAR) tablas restantes
+        for tab_name in [tab_name for tab_name in self.tables_name if tab_name not in exported_tables]:
+            self.tables[tab_name].to_sql(tab_name,
+                                         engine,
+                                         if_exists=if_exists,
+                                         index=False)
+
+
