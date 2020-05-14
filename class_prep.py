@@ -7,7 +7,25 @@ import pyodbc
 import re
 import pandas as pd
 import numpy as np
+from sqlalchemy.types import String, Integer, Float
 
+
+def rm_nonumeric(x):
+    if pd.isna(x):
+        return np.NaN
+    else:
+        try:
+            float(x)
+            return x
+        except:
+            return np.NaN
+
+
+def conv_dtype(x, sql_dtype):
+    if sql_dtype is Integer:
+        return int(X)
+    if sql_dtype is Float:
+        return float(x)
 
 class PrepPsuAccess:
 
@@ -88,21 +106,27 @@ class PrepPsuAccess:
         else:
             return tmp
 
-    def compare_columns_name(self, table_name, columns_list):
+    def compare_columns_name(self, table_name, columns_list, output='diff'):
 
         list_cols = set(columns_list)
         real_cols = set(self.tables[table_name].columns)
 
-        diff1 = list_cols - real_cols
-        diff2 = real_cols - list_cols
+        if output == 'diff':
+            diff1 = list_cols - real_cols
+            diff2 = real_cols - list_cols
 
-        if (diff1 == set()) & (diff2 == set()):
-            print('{}: todas las columnas iguales!\n'.format(table_name))
-        else:
-            a = pd.Series(sorted(list(diff1)))
-            b = pd.Series(sorted(list(diff2)))
+            if (diff1 == set()) & (diff2 == set()):
+                print('{}: todas las columnas iguales!\n'.format(table_name))
+            else:
+                a = pd.Series(sorted(list(diff1)))
+                b = pd.Series(sorted(list(diff2)))
 
-            return pd.DataFrame({'list_cols': a, 'real_cols': b})
+                return pd.DataFrame({'list_cols': a, 'real_cols': b})
+
+        if output == 'equals':
+            intersect = list_cols & real_cols
+
+            return list(intersect)
 
     def compare_multiple_columns(self, column_list, table_type='_e'):
 
@@ -153,7 +177,7 @@ class PrepPsuAccess:
 
                     elif auto_rw_dict == 'add':
                         added_cols = tmp_df['real_cols'].to_list()
-                        [tmp_dict.update({key, 'VARCHAR (255)'}) for key in tmp_df['list_cols']]
+                        [tmp_dict.update({key, String(255)}) for key in tmp_df['list_cols']]
                         print('En {} columnas originales agregadas: \n{}\n'.format(tab_name, added_cols))
                     else:
                         raise ValueError('Invalid Value {} for \"auto_rw_dict\"'.format(auto_rw_dict))
@@ -170,5 +194,26 @@ class PrepPsuAccess:
                                          engine,
                                          if_exists=if_exists,
                                          index=False)
+
+    def remove_numeric_dirtydata(self, dtypes_dict):
+
+        for tab_type in dtypes_dict.keys():
+            expected_cols = list(dtypes_dict[tab_type].keys())
+
+            for tab_name in [tab for tab in self.tables_name if '_{}'.format(tab_type) in tab]:
+                found_cols = self.compare_columns_name(tab_name, expected_cols, output='equals')
+                filtered_dict = {col: dtypes_dict[col] for col in found_cols}
+                numeric_cols = [col for col, dtype in filtered_dict.items()
+                                if isinstance(dtype, (Integer, Float))]
+                numeric_dict = {col: filtered_dict[col] for col in numeric_cols}
+
+                for col, dtype in numeric_dict:
+                    # Reemplazar separador decimal
+                    self.tables[tab_name][col] = self.tables[tab_name][col].map(lambda x: x.replace(',', '.'))
+                    # Eliminar strings con valores no númericos
+                    self.tables[tab_name][col] = self.tables[tab_name][col].map(lambda x: rm_nonumeric(x))
+                    # Convertir tipo de datos de string a númerico
+                    self.tables[tab_name][col] = self.tables[tab_name][col].map(lambda x: conv_dtype(x, dtype))
+
 
 
