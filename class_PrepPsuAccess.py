@@ -13,28 +13,48 @@ from time import time
 class PrepPsuAccess:
     """
     Clase para reolizar proceso de ETL para bases de PSU en Access
+
+    Parameters
+    ----------
+    file_path : str
+        Ruta absoluta o relativa de archivo Access a importar
+
+    Attributes
+    ----------
+    tables: dict
+        Diccionario con tablas de base PSU en pd.DataFrame
+    tables_name:
+        Lista con nombre de las tablas presentes en el base PSU
     """
 
     def __init__(self, file_path):
-        
-        self.file_path = file_path
-        self.conn = pyodbc.connect(r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=%s;' %file_path)
-        self.cursor = self.conn.cursor()
-        self.tables = self.get_tables()
+
+        self.tables = self.get_tables(file_path)
         self.tables_name = list(self.tables.keys())
-        
-    def get_tables(self):
+
+    @staticmethod
+    def get_tables(file_path):
         """
-        Importa las tablas de la base PSU en DataFrames de pandas y las devuelve en un diccionaario
-        :return
-            {dict} diccionario con elementos de forma {nombre_tabla, Pandas_DataFrame}
+        Importa las tablas de la base PSU  de Access en DataFrames de pandas y las devuelve en un diccionaario
+
+        Parameters
+        ----------
+        file_path : str
+            Ruta absoluta o relativa de archivo Access a importar
+
+        Returns
+        -------
+        dict
+            Diccionario con tablas de base PSU en pd.DataFrame
         """
-        
+
+        cursor = pyodbc.connect(r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=%s;' % file_path).cursor()
         tables_dict = dict()
-        tables_name = [row.table_name for row in self.cursor.tables() if re.match('p1*', row.table_name)]
+        tables_name = [row.table_name for row in cursor.tables() if re.match('p1*', row.table_name)]
+
         for tab_name in tables_name:
-            values = self.cursor.execute('SELECT * FROM {}'.format(tab_name))
-            cols_name = [tup[0] for tup in self.cursor.description]
+            values = cursor.execute('SELECT * FROM {}'.format(tab_name))
+            cols_name = [tup[0] for tup in cursor.description]
             tables_dict[tab_name] = pd.DataFrame.from_records(data=values, columns=cols_name)
             
         return tables_dict
@@ -42,7 +62,13 @@ class PrepPsuAccess:
     def clean_columns_name(self, print_results=True):
         """
         Corrige el nombre de las columnas con casos típicos encontrados en las bases PSU
+
+        Parameters
+        ----------
+        print_results : bool
+            Sí se desea imprimir el reporte de cambios en el nombre de las columnas
         """
+
         for tab_name in self.tables_name:
 
             cols_name = self.tables[tab_name]
@@ -65,10 +91,6 @@ class PrepPsuAccess:
                     print(f'For {tab_name}\ncols {diff1}\nconverted to\n cols{diff2}\n')
 
     def replace_nan_values(self, nan_dict):
-
-        """"
-        Por ahora solo columna e
-        """
 
         # Reemplazo de valores nulos en tabla e
         for tab_name in [x for x in self.tables_name if '_e' in x]:
@@ -231,8 +253,8 @@ class PrepPsuAccess:
                 filtered_dict = {col: null_dict[tab_type][col] for col in found_cols}
                 # Reemplazar valores nulos
                 self.tables[tab_name].replace(to_replace=null_dict[tab_type],
-                                             value=np.NaN,
-                                             inplace=True)
+                                              value=np.NaN,
+                                              inplace=True)
 
     def to_sql(self, engine, if_exists='replace'):
 
