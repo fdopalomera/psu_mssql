@@ -37,7 +37,6 @@ nan_dict = {
     'CODIGO_COMUNA_D': 0,
 }
 
-
 # Se instancia la clase para realizar porceso de ETL
 df = PrepPsuExcel(file_route)
 # Se aplican las transformaciones/preproceso
