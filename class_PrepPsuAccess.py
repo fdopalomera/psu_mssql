@@ -243,8 +243,6 @@ class PrepPsuAccess:
                     # Cambiar el tipo de dato
                     self.tables[tab_name].loc[:, col] = pd.to_numeric(self.tables[tab_name][col], errors='coerce')
 
-                print(self.tables[tab_name].info())
-
     def transform_col(self, transform_dict):
 
         """

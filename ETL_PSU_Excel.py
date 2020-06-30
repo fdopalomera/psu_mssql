@@ -1,16 +1,15 @@
+
 """ Script para extraer, transformar y exportar a motor de sql bases psu en excel
 
 El siguiente script permite realizar un proceso de ETL a las bases PSU entregadas por casa central a la FEN, el cual
 es un archivo excel con las personas convocadas a matricularse y en lista de espera.
 """
 
-
 from sqlalchemy import create_engine
 from class_PrepPsuExcel import PrepPsuExcel
 
-
 # Ruta absoluta o relativa de la base deseada a procesoar
-file_route = 'bases_excel/p19_fen.xlsx'
+file_path = 'bases_excel/p19_fen.xlsx'
 
 # Datos para generar la conexión a SQL Server
 servername = 'localhost'
@@ -37,11 +36,11 @@ nan_dict = {
     'CODIGO_COMUNA_D': 0,
 }
 
-# Se instancia la clase para realizar porceso de ETL
-df = PrepPsuExcel(file_route)
+# Se instancia la clase para realizar proceso de ETL
+df = PrepPsuExcel(file_path)
 # Se aplican las transformaciones/preproceso
 df.homolgate_columns_name()
 df.replace_nan_values(nan_dict)
 # Se exporta base a motor de sql
-df.to_sql(f'{file_route[12:19]}', engine, replace_if_exist=True)
+df.to_sql(f'{file_route[12:19]}', engine, if_exists='replace')
 

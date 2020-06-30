@@ -1,21 +1,20 @@
+
 import pandas as pd
 import numpy as np
 
-"""
-Heredar todos los métodos de DataFrame?
-
-"""
 
 class PrepPsuExcel:
+    """
+    Clase para reolizar proceso de ETL para bases de PSU en Excel
 
-    def __init__(self, file_route):
-        self.__base = pd.read_excel(file_route)
-        
-    def columns(self):
-        return self.__base.columns 
-    
-    def info(self): 
-        return self.__base.info() 
+    Parameters
+    ----------
+    file_path : str
+        Ruta absoluta o relativa de archivo Excel a importar
+    """
+
+    def __init__(self, file_path):
+        self.__base = pd.read_excel(file_path)
     
     def homolgate_columns_name(self):
         """
@@ -44,6 +43,15 @@ class PrepPsuExcel:
             print('{} to {}'.format(diff1, diff2))
 
     def replace_nan_values(self, nan_dict):
+
+        """
+        Reemplaza los valores establecidos como datos nulos por np.NaN.
+
+        Parameters
+        ----------
+        nan_dict : dict
+             Diccionario con la estructura {col_name1: null_value1, ...}}
+        """
         
         nan_before = self.__base.isnull().sum()
         self.__base = self.__base.replace(to_replace=nan_dict, value=np.NaN)
@@ -51,24 +59,25 @@ class PrepPsuExcel:
         nan_diff = (nan_after - nan_before)[list(nan_dict.keys())]
         nan_diff.name = 'added_nan_values'
         print(nan_diff)
-
-    def clean_columns_name(self, old_value, new_value):
-        
-        new_cols_name = [x.replace(old_value, new_value) for x in self.__base.columns]
-        diff1 = set(self.__base.columns) - set(new_cols_name)
-        diff2 = set(new_cols_name) - set(self.__base.columns)
-        if diff1 == diff2:
-            print('No hubo cambios')
-        else:
-            # Actualizar nombre de columnas
-            self.__base.columns = new_cols_name
-            # Imprimir columnas cambiadas
-            print('{} to {}'.format(diff1, diff2))
             
-    def to_sql(self, table_name, engine, replace_if_exist=False):
-        
-        action = 'fail'
-        if replace_if_exist:
-            action = 'replace'
+    def to_sql(self, table_name, engine, if_exists='replace'):
+        """
+        Exporta la tabla la base de datos establecida.
+
+        Parameters
+        ----------
+        table_name: str
+            Nombre de la tabla a exportar
+
+        engine: sqlalchemy.engine.Engine
+            Objeto para generar la conexión a la base de datos de sql a exportar las tablas
+
+        if_exists: {'replace' or 'fail' or 'append'}, default 'replace'
+            Acción a realizarse si alguna tabla a exportarse se encuentra actualmente en la base de datos.
+
+            * replace: Elimina la anterior antes de insertar la nueva
+            * fail: Levanta un ValueError
+            * append: Inserta los nuevos valores en la tabla existente
+        """
        
-        self.__base.to_sql(table_name, engine, if_exists=action, index=False)
+        self.__base.to_sql(table_name, engine, if_exists=if_exists, index=False)
