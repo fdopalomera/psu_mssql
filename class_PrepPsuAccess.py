@@ -1,6 +1,5 @@
 """"
-    TODO: replace_nan_values: reemplazar valores nulos en tabla b
-                              revisar existencia de columnas (LISTO)
+    TODO:
         - resolver problema de 3 últimas filas al imputar datos (BORRAR FILAS NULAS?)
 """
 import pyodbc
@@ -22,7 +21,7 @@ class PrepPsuAccess:
     Attributes
     ----------
     tables: dict
-        Diccionario con tablas de base PSU en pd.DataFrame
+        Diccionario con tablas de base PSU en pandas.DataFrame
     tables_name:
         Lista con nombre de las tablas presentes en el base PSU
     """
@@ -35,7 +34,7 @@ class PrepPsuAccess:
     @staticmethod
     def get_tables(file_path):
         """
-        Importa las tablas de la base PSU  de Access en DataFrames de pandas y las devuelve en un diccionaario
+        Importa las tablas de la base PSU de Access en DataFrames de pandas y las devuelve en un diccionario
 
         Parameters
         ----------
@@ -45,7 +44,7 @@ class PrepPsuAccess:
         Returns
         -------
         dict
-            Diccionario con tablas de base PSU en pd.DataFrame
+            Diccionario con tablas de base PSU en pandas.DataFrame
         """
 
         cursor = pyodbc.connect(r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=%s;' % file_path).cursor()
@@ -59,13 +58,13 @@ class PrepPsuAccess:
             
         return tables_dict
     
-    def clean_columns_name(self, print_results=True):
+    def clean_columns_name(self, print_results=False):
         """
         Corrige el nombre de las columnas con casos típicos encontrados en las bases PSU
 
         Parameters
         ----------
-        print_results : bool
+        print_results : bool, default False
             Sí se desea imprimir el reporte de cambios en el nombre de las columnas
         """
 
@@ -90,27 +89,24 @@ class PrepPsuAccess:
                 if print_results:
                     print(f'For {tab_name}\ncols {diff1}\nconverted to\n cols{diff2}\n')
 
-    def replace_nan_values(self, nan_dict):
+    def compare_columns_name(self, table_name, columns_list, output='equals'):
+        """
+        Compara el nombre de las columnas de una tabla seleccionada con una lista
 
-        # Reemplazo de valores nulos en tabla e
-        for tab_name in [x for x in self.tables_name if '_e' in x]:
+        Parameters
+        ----------
+        table_name : str
+            Nombre de la tabla a realizar la comparación
+        columns_list : list
+            Lista con nombre de columnas a comparar con las presentes en la tabla seleccionada
+        output : {'equal' or 'diff'}, default 'diff'
+            Define el retorno de la comparación en columnas iguales ('equals') o diferentes ('diff')
 
-            nan_before = self.tables[tab_name].isnull().sum()
-            self.tables[tab_name] = self.tables[tab_name].replace(to_replace=nan_dict, value=np.NaN)
-            nan_after = self.tables[tab_name].isnull().sum()
-            # Revisar
-            nan_diff = (nan_after - nan_before)[list(nan_dict.keys())]
-            nan_diff.name = 'added_nan_values'
-            print('Valores reemplazados en {}:\n{}\n'.format(tab_name, nan_diff))
-
-    def get_columns_name(self, table_name, vertical_print=True):
-
-        if vertical_print:
-            print('\n'.join(self.tables[table_name].columns))
-        else:
-            return list(self.tables[table_name].columns)
-
-    def compare_columns_name(self, table_name, columns_list, output='diff'):
+        Returns
+        -------
+        list or pandas.DataFrame
+            Devuelve columnas resultantes de la comparación
+        """
 
         list_cols = set(columns_list)
         real_cols = set(self.tables[table_name].columns)
@@ -132,34 +128,42 @@ class PrepPsuAccess:
 
             return list(intersect)
         else:
-            raise ValueError('Not defined')
-
-    def compare_multiple_columns(self, column_list, table_type='_e'):
-
-        """
-        Compara distintas tablas de un tipo establecido
-        :param table_type: str
-                    Tipo de tabla PSU, ejemplo: '_e'
-        :param column_list: list
-                    Columnas a comparar con tablas
-        :return:
-        """
-
-        for tab_name in [x for x in self.tables_name if table_type in x]:
-
-            tmp = self.compare_columns_name(tab_name, column_list)
-            if tmp is not None:
-                print('{}:\n{}\n'.format(tab_name, tmp))
+            raise ValueError("Valor no admitido, seleccione 'diff' o 'equals'")
 
     def rename_columns(self, colname_dict):
+        """
+        Renombra las columnas de las tablas de la base PSU
+
+        Parameters
+        ----------
+        colname_dict: dict
+            Diccionario con la estructura {table_type: {old_colname1: colname1, ...}}
+        -------
+        """
 
         for tab_type in colname_dict.keys():
             for tab_name in [tab for tab in self.tables_name if '_{}'.format(tab_type) in tab]:
                 self.tables[tab_name].rename(columns=colname_dict[tab_type], inplace=True)
 
     def tables_to_sql(self, engine, tables_list, type_list=True, if_exists='replace'):
+        """
+        Exporta las tablas seleccionadas en la base de datos establecida
 
-        """Carga todas las tablas del tipo de tabla procesadas en la base de datos establecida"""
+        Parameters
+        ----------
+        engine: sqlalchemy.engine.Engine
+            Objeto para generar la conexión a la base de datos de sql a exportar las tablas
+        tables_list: list
+            Tablas a
+        type_list: bool, default True
+
+        if_exists: {'replace' or 'fail' or 'append'}, default 'replace'
+            Acción a realizarse si alguna tabla a exportarse se encuentra actualmente en la base de datos.
+
+            * replace: Elimina la anterior antes de insertar la nueva
+            * fail: Levanta un ValueError
+            * append: Inserta los nuevos valores en la tabla existente
+        """
 
         start = time()
         if type_list:
@@ -176,6 +180,14 @@ class PrepPsuAccess:
         print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 
     def remove_numeric_dirtydata(self, dtypes_dict):
+        """
+        Convierte los valores no numéricos en datos nulos.
+
+        Parameters
+        ----------
+        dtypes_dict: dict
+            Diccionario con la estructura {table_type: {numeric_col1: numeric_dtype1, ...}}
+        """
 
         for tab_type in dtypes_dict.keys():
 
@@ -209,7 +221,14 @@ class PrepPsuAccess:
 
     def change_column_dtype(self, dtypes_dict):
 
-        """Cambia el tipo de datos de las columnas seleccionadas"""
+        """
+        Cambia el tipo de datos de las columnas seleccionadas.
+
+        Parameters
+        ----------
+        dtypes_dict : dict
+            Diccionario con la estructura {table_type: {col_name1: dtype1, ...}}
+        """
 
         for tab_type in dtypes_dict.keys():
             expected_cols = list(dtypes_dict[tab_type].keys())
@@ -228,7 +247,14 @@ class PrepPsuAccess:
 
     def transform_col(self, transform_dict):
 
-        """Realiza las transformaciones requeridas a nivel de columnas"""
+        """
+        Realiza las transformaciones requeridas a nivel de columnas.
+
+        Parameters
+        ----------
+        transform_dict : dict
+            Diccionario con la estructura {table_type: {col_name1: transformation1, ...}}
+        """
 
         for tab_type in transform_dict.keys():
             expected_cols = list(transform_dict[tab_type].keys())
@@ -242,7 +268,14 @@ class PrepPsuAccess:
 
     def replace_null_values(self, null_dict):
 
-        """Reemplaza los valores establecidos como datos nulos por np.NaN"""
+        """
+        Reemplaza los valores establecidos como datos nulos por np.NaN.
+
+        Parameters
+        ----------
+        null_dict : dict
+             Diccionario con la estructura {table_type: {col_name1: null_value1, ...}}
+        """
 
         for tab_type in null_dict.keys():
             # Revisar si es necesario comparar valores nulos
@@ -257,8 +290,21 @@ class PrepPsuAccess:
                                               inplace=True)
 
     def to_sql(self, engine, if_exists='replace'):
+        """
+        Exporta todas las tablas en la base de datos establecida.
 
-        """Carga todas las tablas procesadas en la base de datos establecida"""
+        Parameters
+        ----------
+        engine: sqlalchemy.engine.Engine
+            Objeto para generar la conexión a la base de datos de sql a exportar las tablas
+
+        if_exists: {'replace' or 'fail' or 'append'}, default 'replace'
+            Acción a realizarse si alguna tabla a exportarse se encuentra actualmente en la base de datos.
+
+            * replace: Elimina la anterior antes de insertar la nueva
+            * fail: Levanta un ValueError
+            * append: Inserta los nuevos valores en la tabla existente
+        """
 
         start = time()
         # Para cada tabla en la base cargada en in la instancia
@@ -278,7 +324,20 @@ class PrepPsuAccess:
     @staticmethod
     def _rm_nonumeric(x):
 
-        """Evalua si el valor ingresado es númerico, retornandolo como float si es así o np.NaN en caso contrario"""
+        """
+        Evalúa si el valor ingresado es numérico, retornando como float si es así o np.NaN en caso contrario.
+
+        Parameters
+        ----------
+        x : str, int or float
+            Valor a evaluar
+
+        Returns
+        -------
+        float or np.NaN
+            Sí el valor ingresado es un número, retorna un float. En caso contrario, retorna np.NaN
+
+        """
 
         if pd.isna(x):
             return np.NaN
@@ -292,7 +351,20 @@ class PrepPsuAccess:
     @staticmethod
     def _conv_dtype(x, dtype):
 
-        """Retorna el valor ingresado en el tipo de dato deseado"""
+        """
+        Retorna el valor ingresado en el tipo de dato deseado
+
+        Parameters
+        ----------
+        x : object
+            Valor a convertir
+        dtype : object
+            Tipo de dato a convertir
+
+        Returns
+        -------
+        int or float
+        """
 
         if pd.isna(x):
             return np.NaN
@@ -307,7 +379,18 @@ class PrepPsuAccess:
     @staticmethod
     def _conv_decsep(x):
 
-        """Si el valor es un string, retorna el string convirtiendo las comas por puntos"""
+        """
+        Si el valor es un string, retorna el string convirtiendo las comas por puntos
+
+        Parameters
+        ----------
+        x : str or object
+            Valor a evaluar
+
+        Returns
+        -------
+        str or object
+        """
 
         if isinstance(x, str):
             return x.replace(',', '.')
