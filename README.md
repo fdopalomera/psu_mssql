@@ -10,6 +10,8 @@
 - [Herramientas Utilizadas](#herramientas-utilizadas)
 - [Cómo Usar](#cómo-usar)
 - [Memoria de Cálculo](#memoria-de-cálculo)
+    - [Campos de la Vista](#campos-de-la-vista)
+    - [Detalles a considerar](#detalles-a-considerar)
 
 ## Acerca del Proyecto
 
@@ -37,7 +39,6 @@ información de la base PSU con la de SAD sin necesidad de otras transformacione
 Ej: Columnas `RUT` y `DV` de la base PSU se transforma a columna `Cod_Persona` como se encuentra en SAD, o el caso de 
 valores 'BEA' se convierten a 'BEA 5% SUPERIOR'.
 
-
 ## Bitácora
 
 * Hasta Agosto 2020, se cuenta con 4 bases de Access, correspondientes al periodo 2015-2018, con al menos la 
@@ -46,7 +47,6 @@ se cuenta con más o menos `tablas_e` que pertenecen a los chic@s que entran por
 (ej: 'SIPEE', 'SIDD', 'SIEG' , 'PACE'). Este punto igual es importante mencionar, dado que muchas veces los alumnos 
 de ingresos especiales
 
-Pueden filtrar por tipo de ingreso y ver cual hay por periodo agrupando por 'Año_Proceso',  'Tipo_Ingreso'.
 ## Herramientas Utilizadas
 
 * [SQL_Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
@@ -56,10 +56,7 @@ Pueden filtrar por tipo de ingreso y ver cual hay por periodo agrupando por 'Añ
 ## Instalación
 
 1) Descargar e instalar SQL Server 2019 Developer (free)
-
-2) Si se utiliza Anaconda o Miniconda
-
-3) Instalar las siguientes librerías 
+2.1) Si se utiliza Anaconda o Miniconda , Instalar las siguientes librerías 
 - Usando Conda
 ```sh
 conda install numpy pandas pyodbc
@@ -68,7 +65,7 @@ conda install numpy pandas pyodbc
 ```sh
 pip install numpy pandas pyodbc
 ```
-- Usando ambiente virtual de Python
+2.2) Alternativamente, puede usar un ambiente virtual de Python
 ```sh
 python -m venv venv
 source venv/bin/activate
@@ -85,12 +82,6 @@ pip install requirements.txt
 
 ## Cómo Usar
 
-
-
-## Vista PSU
-
-
-
 ### Cruzar columnas con SAD
 * Como puede que un alumno tenga postulaciones en distintos carreras de la FEN, en la misma carrera a través de 
 distintos tipos de ingresos o pudiendo (en los más raros casos) quedar convocado en 2 carreras a la vez, se puede 
@@ -99,34 +90,47 @@ realizar el cruce de información con SAD a través de los siguientes 4 campos: 
 
 ## Memoria de Cálculo
 
-* Como puede ser posible que un postulante en lista de espera haya ingresado la FEN, ell@s también se encuentran en la 
-vista.
-*  Originalmente a los alumnos que ingresan postulan por el PACE se les calcula un puntaje PSU ponderado distinto al
-común, dado que ponderan otras variables propias de este sistema de ingreso. En las vista de sql, se recalculó con la 
-ponderación que al año 2020 se tiene: 50% Matemática, 10% Lenguaje, 10% Ciencias o Historia, 20% Ranking y 10% NEM.
+### Campos de la Vista
 
 * __Cod_Persona__: Rut o número de documento de identificación de la persona que realiza la postulación.
 * __Año_Proceso__: Año del proceso de selección universitaria en el cual la postulación es realizada.
 * __Tipo_Alumno__: Carrera de la FEN (IC, CA, IICG) escogida para postular.
 * __Tipo_Ingreso__: Tipo de Ingreso a la cual la postulación está referida. Ej: PSU, PACE, SIPEE, etc.
 * __Estado_Postulacion__: Clasificación del resultado de la postulación, pudiendo ser "CONVOCADO" o en "LISTA ESPERA"
-* __PreferenciaPostulacion__: Lugar
-* __PuntajeIngreso__:
-* __Ptje_PSU_Matematica__:
-* __Ptje_PSU_Lenguaje__:
-* __Ptje_Ranking__:
-* __Utiliza_Ptje_Anterior__:
-* __Sexo__:
-* __Ing_Bruto_Familiar__:
-* __Domicilio_Cod_Comuna__:
-* __Local_Educacional__:
-* __Unidad_Educativa__:
-* __Grupo_Dependencia__:
-* __Colegio_Cod_Comuna__:
-* __Colegio_PSU_Alumnos__: 
-* __Colegio_PSU_Mate__:
-* __Colegio_PSU_Leng__:
-* __Colegio_Notas_EM__:
+* __PreferenciaPostulacion__: Lugar de preferencia que el postulante asignó a la postulación.
+* __PuntajeIngreso__: Puntaje promedio ponderado de los puntajes PSU del postulante según 
+* __Ptje_PSU_Matematica__: Puntaje obtenido en la Prueba de Mátemtica.
+* __Ptje_PSU_Lenguaje__: Puntaje obtenido en la Prueba de Lenguaje y Comunicación.
+* __Ptje_Ranking__: Puntaje obtenido a través de la posición relativa del alumno con respecto a su generación de egreso
+(y pasadas) de egreso del colegio.
+* __Utiliza_Ptje_Anterior__: Determina si el puntaje de postulación proviene del actual proceso o del año anterior.
+* __Sexo__: Género del postulante.
+* __Ing_Bruto_Familiar__: Tramo de ingresos en el cual el estudiante declara que pertenece su familia.
+* __Domicilio_Cod_Comuna__: Código de la comuna en la que se encontraba su domicilio al momento de realizar la 
+postulación.
+* __Local_Educacional__: Código del local educacional.
+* __Unidad_Educativa__: Código de la unidad educativa.
+* __Grupo_Dependencia__: Según la entidad que depende y es administrado el colegio, se clasifica en: Municipal,
+Particular Subvencionado o Particular Pagado.
+* __Colegio_Cod_Comuna__: Código de la comuna en la que se encuentra el colegio donde el o la postulante realizó su 
+último año de enseñanza media.
+* __Colegio_PSU_Alumnos__: Cantidad de estudiantes del colegio del postulante que rindieron la psu el año del proceso 
+en que la postulación fue realizada.
+* __Colegio_PSU_Mate__: Puntaje promedio obtenido en la prueba de matemáticas por los estudiantes del colegio del 
+postulante, que rindieron la psu el año del proceso en que la postulación fue realizada.
+* __Colegio_PSU_Leng__: Puntaje promedio obtenido en la prueba de lenguaje por los estudiantes del colegio del 
+postulante, que rindieron la psu el año del proceso en que la postulación fue realizada.
+* __Colegio_Notas_EM__: Notas de enseñanza media promedio de los estudiantes del colegio del 
+postulante, que rindieron la psu el año del proceso en que la postulación fue realizada.
 
-<!-- Pendientes(Test) -->
-<!-- Contribuyentes --->
+### Detalles a considerar
+* Como puede ser posible que un postulante `en lista de espera haya ingresado la FEN, ell@s también se encuentran en la 
+vista.
+*  Originalmente a los alumnos que ingresan postulan por el PACE se les calcula un puntaje PSU ponderado distinto al
+común, dado que ponderan otras variables propias de este sistema de ingreso. En las vista de sql, se recalculó con la 
+ponderación que al año 2020 se tiene: 50% Matemática, 10% Lenguaje, 10% Ciencias o Historia, 20% Ranking y 10% NEM.
+* `Ingreso Bruto Familiar presenta distintas escalas dependiendo del año del proceso.
+
+## Contribuyentes
+
+* Fernando Palomera  - [https://github.com/fdopalomera](https://github.com/fdopalomera)

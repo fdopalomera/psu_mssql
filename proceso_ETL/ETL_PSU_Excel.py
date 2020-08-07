@@ -6,7 +6,7 @@ es un archivo excel con las personas convocadas a matricularse y en lista de esp
 """
 
 from sqlalchemy import create_engine
-from class_PrepPsuExcel import PrepPsuExcel
+from src.class_PrepPsuExcel import PrepPsuExcel
 
 # Ruta absoluta o relativa de la base deseada a procesoar
 file_path = 'bases_excel/p19_fen.xlsx'
